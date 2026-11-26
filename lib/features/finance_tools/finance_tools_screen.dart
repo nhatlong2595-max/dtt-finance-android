@@ -12,11 +12,11 @@ class _FinanceToolsScreenState extends State<FinanceToolsScreen>{
  @override void dispose(){target.dispose();current.dispose();super.dispose();}
  String get title=>switch(widget.tool){FinanceTool.savings=>'Tiết kiệm',FinanceTool.budget=>'Ngân sách',FinanceTool.goals=>'Mục tiêu',FinanceTool.health=>'Sức khỏe tài chính'};
  String get description=>switch(widget.tool){FinanceTool.savings=>'Thiết lập số tiền muốn tích lũy và cập nhật số tiền đã tiết kiệm.',FinanceTool.budget=>'Đặt hạn mức chi tiêu tổng thể và theo dõi mức sử dụng.',FinanceTool.goals=>'Đặt mục tiêu tài chính và cập nhật tiến độ thực hiện.',FinanceTool.health=>'Đánh giá sức khỏe dòng tiền từ dữ liệu giao dịch hiện có.'};
- @override Widget build(BuildContext context){final flow=widget.store.cashflow;final income=flow['income']??0,expense=flow['expense']??0;final progress=savedTarget<=0?0.0:(savedCurrent/savedTarget).clamp(0.0,1.0);return Scaffold(appBar:AppBar(title:Text(title)),body:loading?const Center(child:CircularProgressIndicator()):ListView(padding:const EdgeInsets.all(18),children:[
+ @override Widget build(BuildContext context){final flow=widget.store.cashflow;final income=flow['income']??0,expense=flow['expense']??0;final progress=savedTarget<=0?0.0:(savedCurrent/savedTarget).clamp(0.0,1.0).toDouble();return Scaffold(appBar:AppBar(title:Text(title)),body:loading?const Center(child:CircularProgressIndicator()):ListView(padding:const EdgeInsets.all(18),children:[
  Text(description,style:TextStyle(color:Colors.grey.shade700,height:1.4)),const SizedBox(height:18),
  if(widget.tool==FinanceTool.health)...[
- _healthCard('Tỷ lệ tiết kiệm',income==0?'Chưa đủ dữ liệu':((income-expense)*100/income).toStringAsFixed(1)+'%',income==0?0:((income-expense)/income).clamp(0.0,1.0)),
- _healthCard('Kiểm soát chi tiêu',income==0?'Chưa đủ dữ liệu':expense<=income?'Chi tiêu không vượt thu nhập':'Chi tiêu vượt thu nhập',income==0?0:expense<=income?1:0.25),
+ _healthCard('Tỷ lệ tiết kiệm',income==0?'Chưa đủ dữ liệu':((income-expense)*100/income).toStringAsFixed(1)+'%',income==0?0.0:((income-expense)/income).clamp(0.0,1.0).toDouble()),
+ _healthCard('Kiểm soát chi tiêu',income==0?'Chưa đủ dữ liệu':expense<=income?'Chi tiêu không vượt thu nhập':'Chi tiêu vượt thu nhập',income==0?0.0:expense<=income?1.0:0.25),
  _healthCard('Dữ liệu tài chính',widget.store.transactions.isEmpty?'Chưa có giao dịch':widget.store.transactions.length.toString()+' giao dịch được ghi nhận',widget.store.transactions.isEmpty?0.1:0.5),
  const SizedBox(height:12),const Text('Đây là chỉ báo tham khảo dựa trên dữ liệu hiện có, không phải điểm tín dụng. Chưa có dữ liệu về nợ, quỹ dự phòng và tài sản nên chưa thể chấm điểm sức khỏe toàn diện.',style:TextStyle(color:Colors.black54)),
  ]else...[
