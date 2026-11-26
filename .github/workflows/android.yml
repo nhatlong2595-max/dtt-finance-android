@@ -4,10 +4,10 @@ on:
   push:
     branches: [ main ]
 permissions:
-  contents: read
+  contents: write
 jobs:
   build:
-    name: Analyze, test and build release APK
+    name: Analyze, test, build and publish Android APK
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source
@@ -38,3 +38,10 @@ jobs:
           path: build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
           retention-days: 14
+      - name: Publish GitHub Release for online updates
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.1.$\{{ github.run_number }}
+          name: DTT Finance v1.1.$\{{ github.run_number }}
+          generate_release_notes: true
+          files: build/app/outputs/flutter-apk/app-release.apk
