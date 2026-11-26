@@ -14,9 +14,8 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell>{
  int index=0;
  @override Widget build(BuildContext context){
-  final pages=[DashboardScreen(store:widget.store),TransactionsScreen(store:widget.store),AccountsScreen(store:widget.store),ReportsScreen(store:widget.store),const SettingsScreen()];
   return Scaffold(
-   body:SafeArea(child:AnimatedBuilder(animation:widget.store,builder:(context,_)=>IndexedStack(index:index,children:pages))),
+   body:SafeArea(child:AnimatedBuilder(animation:widget.store,builder:(context,_)=>IndexedStack(index:index,children:[DashboardScreen(store:widget.store),TransactionsScreen(store:widget.store),AccountsScreen(store:widget.store),ReportsScreen(store:widget.store),const SettingsScreen()]))),
    bottomNavigationBar:NavigationBar(selectedIndex:index,onDestinationSelected:(i)=>setState(()=>index=i),destinations:const [
     NavigationDestination(icon:Icon(Icons.dashboard_outlined),selectedIcon:Icon(Icons.dashboard),label:'Tổng quan'),
     NavigationDestination(icon:Icon(Icons.swap_vert),label:'Giao dịch'),
