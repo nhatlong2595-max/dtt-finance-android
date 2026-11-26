@@ -21,14 +21,67 @@ jobs:
           cache: true
       - name: Generate Android platform files
         run: flutter create . --platforms=android --org vn.dttfinance
-      - name: Restore stable Android signing key
+      - name: Prepare DTT Finance signing key
         env:
-          DEBUG_KEYSTORE_BASE64: ${{ secrets.DEBUG_KEYSTORE_BASE64 }}
+          DTT_KEYSTORE_BASE64: ${{ secrets.DTT_FINANCE_KEYSTORE_BASE64 }}
+          DTT_STORE_PASSWORD: ${{ secrets.DTT_FINANCE_STORE_PASSWORD }}
+          DTT_KEY_PASSWORD: ${{ secrets.DTT_FINANCE_KEY_PASSWORD }}
         run: |
-          test -n "$DEBUG_KEYSTORE_BASE64" || { echo "::error::Add repository secret DEBUG_KEYSTORE_BASE64 before publishing updates."; exit 1; }
-          mkdir -p "$HOME/.android"
-          printf '%s' "$DEBUG_KEYSTORE_BASE64" | base64 --decode > "$HOME/.android/debug.keystore"
-          chmod 600 "$HOME/.android/debug.keystore"
+          mkdir -p android/signing
+          if [ -n "$DTT_KEYSTORE_BASE64" ] && [ -n "$DTT_STORE_PASSWORD" ] && [ -n "$DTT_KEY_PASSWORD" ]; then
+            printf '%s' "$DTT_KEYSTORE_BASE64" | base64 --decode > android/signing/dtt-finance.jks
+            echo "DTT_STORE_PASSWORD=$DTT_STORE_PASSWORD" >> "$GITHUB_ENV"
+            echo "DTT_KEY_PASSWORD=$DTT_KEY_PASSWORD" >> "$GITHUB_ENV"
+          else
+            echo "No DTT Finance signing key configured; creating a dedicated first-run key."
+            STORE_PASS="$(openssl rand -hex 24)"
+            KEY_PASS="$(openssl rand -hex 24)"
+            keytool -genkeypair -v -keystore android/signing/dtt-finance.jks -storetype JKS \
+              -alias dttfinance -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass "$STORE_PASS" -keypass "$KEY_PASS" \
+              -dname "CN=DTT Finance, OU=Mobile, O=DTT Finance, L=Ho Chi Minh City, ST=Ho Chi Minh, C=VN"
+            echo "DTT_STORE_PASSWORD=$STORE_PASS" >> "$GITHUB_ENV"
+            echo "DTT_KEY_PASSWORD=$KEY_PASS" >> "$GITHUB_ENV"
+            {
+              echo "DTT_FINANCE_KEYSTORE_BASE64=$(base64 -w 0 android/signing/dtt-finance.jks)"
+              echo "DTT_FINANCE_STORE_PASSWORD=$STORE_PASS"
+              echo "DTT_FINANCE_KEY_PASSWORD=$KEY_PASS"
+            } > dtt-finance-signing-secrets.txt
+          fi
+          cat > android/key.properties <<EOF
+          storeFile=signing/dtt-finance.jks
+          storePassword=$DTT_STORE_PASSWORD
+          keyAlias=dttfinance
+          keyPassword=$DTT_KEY_PASSWORD
+          EOF
+          chmod 600 android/signing/dtt-finance.jks android/key.properties
+      - name: Configure dedicated DTT Finance release signing
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("android/app/build.gradle.kts")
+          s = p.read_text()
+          if 'signingConfigs.create("dttRelease")' not in s:
+              marker = "    buildTypes {"
+              block = '''    val signingProps = java.util.Properties().apply {
+                  load(rootProject.file("key.properties").inputStream())
+              }
+              signingConfigs {
+                  create("dttRelease") {
+                      storeFile = rootProject.file(signingProps.getProperty("storeFile"))
+                      storePassword = signingProps.getProperty("storePassword")
+                      keyAlias = signingProps.getProperty("keyAlias")
+                      keyPassword = signingProps.getProperty("keyPassword")
+                  }
+              }
+          '''
+              if marker not in s:
+                  raise SystemExit("Could not find Android buildTypes block")
+              s = s.replace(marker, block + marker, 1)
+              s = s.replace("            signingConfig = signingConfigs.getByName(\"debug\")",
+                            "            signingConfig = signingConfigs.getByName(\"dttRelease\")")
+              p.write_text(s)
+          PY
       - name: Enable Android internet permission
         run: python3 tools/enable_online_updates.py
       - name: Enable Android core library desugaring
@@ -53,6 +106,13 @@ jobs:
           path: build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
           retention-days: 14
+      - name: Upload DTT Finance signing setup (first build only)
+        if: hashFiles('dtt-finance-signing-secrets.txt') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: dtt-finance-signing-secrets
+          path: dtt-finance-signing-secrets.txt
+          retention-days: 2
       - name: Publish GitHub Release for online updates
         uses: softprops/action-gh-release@v2
         with:
