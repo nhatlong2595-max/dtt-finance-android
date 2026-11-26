@@ -19,6 +19,8 @@ jobs:
           cache: true
       - name: Generate Android platform files
         run: flutter create . --platforms=android --org vn.dttfinance
+      - name: Enable Android internet permission
+        run: python3 tools/enable_online_updates.py
       - name: Enable Android core library desugaring
         run: python3 tools/enable_desugaring.py
       - name: Remove generated sample test
