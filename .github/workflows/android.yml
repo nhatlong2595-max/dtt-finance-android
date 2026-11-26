@@ -40,8 +40,10 @@ jobs:
               -alias dttfinance -keyalg RSA -keysize 2048 -validity 10000 \
               -storepass "$STORE_PASS" -keypass "$KEY_PASS" \
               -dname "CN=DTT Finance, OU=Mobile, O=DTT Finance, L=Ho Chi Minh City, ST=Ho Chi Minh, C=VN"
-            echo "DTT_STORE_PASSWORD=$STORE_PASS" >> "$GITHUB_ENV"
-            echo "DTT_KEY_PASSWORD=$KEY_PASS" >> "$GITHUB_ENV"
+            DTT_STORE_PASSWORD="$STORE_PASS"
+            DTT_KEY_PASSWORD="$KEY_PASS"
+            echo "DTT_STORE_PASSWORD=$DTT_STORE_PASSWORD" >> "$GITHUB_ENV"
+            echo "DTT_KEY_PASSWORD=$DTT_KEY_PASSWORD" >> "$GITHUB_ENV"
             {
               echo "DTT_FINANCE_KEYSTORE_BASE64=$(base64 -w 0 android/signing/dtt-finance.jks)"
               echo "DTT_FINANCE_STORE_PASSWORD=$STORE_PASS"
