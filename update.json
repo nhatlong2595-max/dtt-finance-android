@@ -1,9 +1,9 @@
 {
   "app": "DTT_Finance",
-  "latestVersion": "1.1.37",
-  "versionCode": 37,
-  "releaseNotes": "Bản phát hành nền DTT Finance",
+  "latestVersion": "1.1.45",
+  "versionCode": 45,
+  "releaseNotes": "DTT Finance update",
   "apkUrl": "https://github.com/nhatlong2595-max/dtt-finance-android/releases/latest/download/app-release.apk",
-  "sha256": "0fab25194675ba8229dadcfde9e3ef32e66ed77decf12594417452a09d6661e3",
+  "sha256": "e495eb2fa6669846bff45417543094f5170412146a761716a45eebc0b29ac238",
   "forceFullApk": true
 }
