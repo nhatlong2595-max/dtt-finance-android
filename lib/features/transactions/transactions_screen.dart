@@ -4,110 +4,34 @@ import '../../data/finance_store.dart';
 import '../../domain/finance_models.dart';
 
 class TransactionsScreen extends StatefulWidget {
-  const TransactionsScreen({super.key, required this.store});
-  final FinanceStore store;
-  @override
-  State<TransactionsScreen> createState() => _TransactionsScreenState();
+ const TransactionsScreen({super.key,required this.store});final FinanceStore store;
+ @override State<TransactionsScreen> createState()=>_TransactionsScreenState();
 }
-
-class _TransactionsScreenState extends State<TransactionsScreen> {
-  final amount = TextEditingController();
-  final note = TextEditingController();
-  TransactionType type = TransactionType.expense;
-  String? accountId;
-  String? destinationId;
-  String? categoryId;
-
-  String money(int value) => NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0).format(value);
-
-  @override
-  Widget build(BuildContext context) {
-    accountId ??= widget.store.accounts.firstOrNull?.id;
-    final categories = widget.store.categories.where((c) => c.type == type || type == TransactionType.transfer).toList();
-    if (categoryId == null || !categories.any((c) => c.id == categoryId)) categoryId = categories.firstOrNull?.id;
-    return Scaffold(
-      appBar: AppBar(title: const Text('Giao dịch')),
-      floatingActionButton: FloatingActionButton.extended(onPressed: _showEntry, icon: const Icon(Icons.add), label: const Text('Thêm giao dịch')),
-      body: ListView(
-        padding: const EdgeInsets.all(12),
-        children: widget.store.transactions.reversed.map((tx) {
-          final category = widget.store.categories.where((c) => c.id == tx.categoryId).firstOrNull;
-          return Card(child: ListTile(
-            leading: CircleAvatar(child: Icon(tx.type == TransactionType.income ? Icons.arrow_downward : Icons.swap_vert)),
-            title: Text(tx.note.isEmpty ? (category?.name ?? tx.type.name) : tx.note),
-            subtitle: Text(DateFormat('dd/MM/yyyy').format(tx.date)),
-            trailing: Text(money(tx.amount)),
-          ));
-        }).toList(),
-      ),
-    );
-  }
-
-  void _showEntry() {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      builder: (sheetContext) => StatefulBuilder(
-        builder: (sheetContext, setModalState) => Padding(
-          padding: EdgeInsets.only(left: 16, right: 16, top: 16, bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 16),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('Giao dịch mới', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                DropdownButtonFormField<TransactionType>(
-                  value: type,
-                  decoration: const InputDecoration(labelText: 'Loại giao dịch'),
-                  items: TransactionType.values.map((v) => DropdownMenuItem(value: v, child: Text(v.name))).toList(),
-                  onChanged: (value) => setModalState(() { type = value ?? type; categoryId = null; destinationId = null; }),
-                ),
-                DropdownButtonFormField<String>(
-                  value: accountId,
-                  decoration: const InputDecoration(labelText: 'Tài khoản nguồn'),
-                  items: widget.store.accounts.map((a) => DropdownMenuItem(value: a.id, child: Text(a.name))).toList(),
-                  onChanged: (value) => setModalState(() { accountId = value; if (destinationId == value) destinationId = null; }),
-                ),
-                if (type == TransactionType.transfer)
-                  DropdownButtonFormField<String>(
-                    value: destinationId ?? widget.store.accounts.where((a) => a.id != accountId).firstOrNull?.id,
-                    decoration: const InputDecoration(labelText: 'Tài khoản nhận'),
-                    items: widget.store.accounts.where((a) => a.id != accountId).map((a) => DropdownMenuItem(value: a.id, child: Text(a.name))).toList(),
-                    onChanged: (value) => setModalState(() => destinationId = value),
-                  ),
-                DropdownButtonFormField<String>(
-                  value: categoryId,
-                  decoration: const InputDecoration(labelText: 'Danh mục'),
-                  items: widget.store.categories.where((c) => c.type == type || type == TransactionType.transfer).map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
-                  onChanged: (value) => setModalState(() => categoryId = value),
-                ),
-                TextField(controller: amount, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Số tiền (VND)')),
-                TextField(controller: note, decoration: const InputDecoration(labelText: 'Ghi chú')),
-                const SizedBox(height: 12),
-                FilledButton(
-                  onPressed: () async {
-                    final value = int.tryParse(amount.text.replaceAll(RegExp(r'[^0-9]'), ''));
-                    if (accountId == null || categoryId == null || value == null || value <= 0) return;
-                    if (type == TransactionType.transfer) {
-                      final target = destinationId ?? widget.store.accounts.where((a) => a.id != accountId).firstOrNull?.id;
-                      if (target == null) return;
-                      await widget.store.transfer(sourceAccountId: accountId!, destinationAccountId: target, amount: value, categoryId: categoryId!, note: note.text, date: DateTime.now());
-                    } else {
-                      await widget.store.addTransaction(accountId: accountId!, amount: value, type: type, categoryId: categoryId!, note: note.text, date: DateTime.now());
-                    }
-                    amount.clear();
-                    note.clear();
-                    if (mounted) {
-                      Navigator.pop(sheetContext);
-                      setState(() {});
-                    }
-                  },
-                  child: const Text('Lưu giao dịch'),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+class _TransactionsScreenState extends State<TransactionsScreen>{
+ final amount=TextEditingController(),note=TextEditingController();
+ TransactionType type=TransactionType.expense;String? accountId,destinationId,categoryId;DateTime date=DateTime.now();
+ final money=NumberFormat.currency(locale:'vi_VN',symbol:'₫',decimalDigits:0);
+ String typeLabel(TransactionType t)=>switch(t){TransactionType.income=>'Thu nhập',TransactionType.expense=>'Chi tiêu',TransactionType.transfer=>'Chuyển khoản',TransactionType.lend=>'Cho vay',TransactionType.borrow=>'Đi vay',TransactionType.repayDebt=>'Trả nợ gốc',TransactionType.collectDebt=>'Thu hồi nợ'};
+ @override void dispose(){amount.dispose();note.dispose();super.dispose();}
+ @override Widget build(BuildContext context)=>Scaffold(appBar:AppBar(title:const Text('Giao dịch')),floatingActionButton:FloatingActionButton.extended(onPressed:showEntry,icon:const Icon(Icons.add),label:const Text('Thêm giao dịch')),body:widget.store.transactions.isEmpty?const Center(child:Text('Chưa có giao dịch. Nhấn “Thêm giao dịch” để bắt đầu.')):ListView.separated(padding:const EdgeInsets.fromLTRB(16,8,16,100),itemCount:widget.store.transactions.length,itemBuilder:(context,i){final tx=widget.store.transactions.reversed.toList()[i];final cat=widget.store.categories.where((c)=>c.id==tx.categoryId).firstOrNull;final positive=tx.type==TransactionType.income||tx.type==TransactionType.collectDebt;return Card(child:ListTile(contentPadding:const EdgeInsets.symmetric(horizontal:14,vertical:7),leading:CircleAvatar(backgroundColor:positive?const Color(0xFFE5F5E8):const Color(0xFFFFE5D7),child:Icon(positive?Icons.south_west:tx.type==TransactionType.transfer?Icons.swap_horiz:Icons.north_east,color:positive?Colors.green:const Color(0xFF99542D))),title:Text(tx.note.isEmpty?(cat?.name??typeLabel(tx.type)):tx.note,maxLines:1,overflow:TextOverflow.ellipsis,style:const TextStyle(fontWeight:FontWeight.w700)),subtitle:Text(typeLabel(tx.type)+' • '+DateFormat('dd/MM/yyyy').format(tx.date)),trailing:Text((positive?'+':tx.type==TransactionType.transfer?'':'−')+money.format(tx.amount),style:TextStyle(fontWeight:FontWeight.bold,color:positive?Colors.green.shade700:null))));},separatorBuilder:(_,__)=>const SizedBox(height:4));
+ Future<void> showEntry()async{
+  type=TransactionType.expense;accountId=widget.store.accounts.firstOrNull?.id;destinationId=null;categoryId=widget.store.categories.where((c)=>c.type==type).firstOrNull?.id;amount.clear();note.clear();date=DateTime.now();
+  await showModalBottomSheet<void>(context:context,isScrollControlled:true,useSafeArea:true,backgroundColor:Colors.transparent,builder:(sheetContext)=>StatefulBuilder(builder:(ctx,setModal)=>Container(
+   constraints:BoxConstraints(maxHeight:MediaQuery.of(ctx).size.height*0.92),decoration:const BoxDecoration(color:Color(0xFFFFF7F1),borderRadius:BorderRadius.vertical(top:Radius.circular(28))),
+   child:Column(children:[
+    Padding(padding:const EdgeInsets.fromLTRB(20,14,20,8),child:Column(children:[Container(width:42,height:4,decoration:BoxDecoration(color:Colors.black26,borderRadius:BorderRadius.circular(4))),const SizedBox(height:14),const Text('Giao dịch mới',style:TextStyle(fontSize:22,fontWeight:FontWeight.w800))])),
+    Expanded(child:ListView(padding:const EdgeInsets.fromLTRB(20,8,20,16),children:[
+     DropdownButtonFormField<TransactionType>(value:type,decoration:const InputDecoration(labelText:'Loại giao dịch',filled:true,fillColor:Colors.white,contentPadding:EdgeInsets.symmetric(horizontal:14,vertical:16)),items:TransactionType.values.map((v)=>DropdownMenuItem(value:v,child:Text(typeLabel(v)))).toList(),onChanged:(v)=>setModal(()=>{type=v??type,categoryId=null,destinationId=null})),
+     const SizedBox(height:14),DropdownButtonFormField<String>(value:accountId,decoration:const InputDecoration(labelText:'Tài khoản nguồn',filled:true,fillColor:Colors.white,contentPadding:EdgeInsets.symmetric(horizontal:14,vertical:16)),items:widget.store.accounts.map((a)=>DropdownMenuItem(value:a.id,child:Text(a.name))).toList(),onChanged:(v)=>setModal(()=>{accountId=v;if(destinationId==v)destinationId=null})),
+     if(type==TransactionType.transfer)...[const SizedBox(height:14),DropdownButtonFormField<String>(value:destinationId??widget.store.accounts.where((a)=>a.id!=accountId).firstOrNull?.id,decoration:const InputDecoration(labelText:'Tài khoản nhận',filled:true,fillColor:Colors.white,contentPadding:EdgeInsets.symmetric(horizontal:14,vertical:16)),items:widget.store.accounts.where((a)=>a.id!=accountId).map((a)=>DropdownMenuItem(value:a.id,child:Text(a.name))).toList(),onChanged:(v)=>setModal(()=>destinationId=v))],
+     const SizedBox(height:14),DropdownButtonFormField<String>(value:categoryId,decoration:const InputDecoration(labelText:'Danh mục',filled:true,fillColor:Colors.white,contentPadding:EdgeInsets.symmetric(horizontal:14,vertical:16)),items:widget.store.categories.where((c)=>c.type==type).map((c)=>DropdownMenuItem(value:c.id,child:Text(c.name))).toList(),onChanged:(v)=>setModal(()=>categoryId=v)),
+     const SizedBox(height:14),TextField(controller:amount,keyboardType:TextInputType.number,decoration:const InputDecoration(labelText:'Số tiền (VND)',hintText:'Ví dụ: 500000',filled:true,fillColor:Colors.white)),
+     const SizedBox(height:14),TextField(controller:note,maxLines:2,minLines:1,decoration:const InputDecoration(labelText:'Ghi chú',filled:true,fillColor:Colors.white)),
+     const SizedBox(height:14),OutlinedButton.icon(onPressed:()async{final d=await showDatePicker(context:ctx,initialDate:date,firstDate:DateTime(2000),lastDate:DateTime(2100));if(d!=null)setModal(()=>date=d);},icon:const Icon(Icons.calendar_today),label:Text('Ngày giao dịch: '+DateFormat('dd/MM/yyyy').format(date))),
+     const SizedBox(height:12),FilledButton(onPressed:()=>save(sheetContext),style:FilledButton.styleFrom(minimumSize:const Size.fromHeight(52)),child:const Text('Lưu giao dịch',style:TextStyle(fontWeight:FontWeight.bold))),
+    ])),
+   ]),
+  )));
+ }
+ Future<void> save(BuildContext sheetContext)async{final value=int.tryParse(amount.text.replaceAll(RegExp(r'[^0-9]'),''));if(accountId==null||categoryId==null||value==null||value<=0){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Vui lòng chọn tài khoản, danh mục và nhập số tiền hợp lệ.')));return;}try{if(type==TransactionType.transfer){final target=destinationId??widget.store.accounts.where((a)=>a.id!=accountId).firstOrNull?.id;if(target==null)throw ArgumentError('Cần ít nhất hai tài khoản để chuyển tiền.');await widget.store.transfer(sourceAccountId:accountId!,destinationAccountId:target,amount:value,categoryId:categoryId!,note:note.text,date:date);}else{await widget.store.addTransaction(accountId:accountId!,amount:value,type:type,categoryId:categoryId!,note:note.text,date:date);}if(!mounted)return;Navigator.pop(sheetContext);setState((){});}catch(e){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('Không thể lưu: '+e.toString())));}}
 }
