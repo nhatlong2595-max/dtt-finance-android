@@ -6,10 +6,16 @@ text = path.read_text()
 
 if "isCoreLibraryDesugaringEnabled" not in text:
     match = re.search(r"compileOptions\\s*\\{", text)
-    if not match:
-        raise SystemExit("Could not find android.compileOptions block in generated Gradle file")
-    insert_at = match.end()
-    text = text[:insert_at] + "\\n        isCoreLibraryDesugaringEnabled = true" + text[insert_at:]
+    if match:
+        insert_at = match.end()
+        text = text[:insert_at] + "\\n        isCoreLibraryDesugaringEnabled = true" + text[insert_at:]
+    else:
+        android = re.search(r"android\\s*\\{", text)
+        if not android:
+            raise SystemExit("Could not find android block in generated Gradle file")
+        insert_at = android.end()
+        block = "\\n    compileOptions {\\n        isCoreLibraryDesugaringEnabled = true\\n        sourceCompatibility = JavaVersion.VERSION_17\\n        targetCompatibility = JavaVersion.VERSION_17\\n    }\\n"
+        text = text[:insert_at] + block + text[insert_at:]
 
 dependency = 'coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")'
 if dependency not in text:
