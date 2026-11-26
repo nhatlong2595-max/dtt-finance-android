@@ -63,7 +63,7 @@ jobs:
           s = p.read_text()
           if 'signingConfigs.create("dttRelease")' not in s:
               if "import java.util.Properties" not in s:
-                  s = "import java.util.Properties\\n" + s
+                  s = "import java.util.Properties\n" + s
               marker = "    buildTypes {"
               block = '''    val signingProps = Properties().apply {
                   load(rootProject.file("key.properties").inputStream())
