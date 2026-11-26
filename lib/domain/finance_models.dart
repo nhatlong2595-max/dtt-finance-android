@@ -1,0 +1,4 @@
+enum TransactionType { income, expense, transfer, lend, borrow, repayDebt, collectDebt }
+class FinanceAccount { const FinanceAccount({required this.id,required this.name,required this.openingBalance}); final String id; final String name; final int openingBalance; }
+class FinanceCategory { const FinanceCategory({required this.id,required this.name,required this.type}); final String id; final String name; final TransactionType type; }
+class FinanceTransaction { const FinanceTransaction({required this.id,required this.accountId,this.destinationAccountId,required this.amount,required this.type,required this.categoryId,required this.note,required this.date,required this.status,this.batchId}); final String id; final String accountId; final String? destinationAccountId; final int amount; final TransactionType type; final String categoryId; final String note; final DateTime date; final String status; final String? batchId; }
